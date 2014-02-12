@@ -1,0 +1,17 @@
+Model:
+	P find()
+		X support relations
+		$type = 'list'
+	
+FormHelper:
+	select()
+	textarea()
+	
+
+Components
+	Session
+		write()
+		read()
+		check()
+		delete()
+	
