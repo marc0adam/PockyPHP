@@ -2,11 +2,9 @@ Model:
 	P find()
 		X support relations
 		$type = 'list'
-	
+
 FormHelper:
-	select()
-	textarea()
-	
+	Add <optgroup> support to select()
 
 Components
 	Session
@@ -14,4 +12,3 @@ Components
 		read()
 		check()
 		delete()
-	
