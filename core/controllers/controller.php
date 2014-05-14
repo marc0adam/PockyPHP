@@ -1,6 +1,6 @@
 <?php
 /**
-* PockyPHP
+* PockyPHP v1.0.0
 * Copyright 2014, Morrison Development
 *
 * Licensed under The MIT License (http://www.opensource.org/licenses/MIT)
@@ -10,12 +10,22 @@ class PockyController {
 	public $layout = 'default';
 	public $autoRender = true;
 	public $output = '';
+	public $components = array();
 	public $helpers = array();
 	protected $viewData = array();
 	protected $data = array();
 	
 	function __construct() {
-		if (!in_array('form', $this->helpers)) $this->helpers[] = 'form';
+		if (!in_array('Session', $this->components)) $this->components[] = 'Session';
+		if (!in_array('Session', $this->helpers)) $this->helpers[] = 'Session';
+		if (!in_array('Form', $this->helpers)) $this->helpers[] = 'Form';
+		
+		foreach($this->components as $component) {
+			$className = PockyApp::classCase($component). 'Component';
+			require_once('controllers/components/'. $className. '.php');
+			$this->$component = new $className($this);
+		}
+		if (!empty($_POST['data'])) { $this->data = $_POST['data']; }
 	}
 	
 	function _addModels($models) {
@@ -56,6 +66,24 @@ class PockyController {
 	}
 	
 	function afterRender() {}
+	
+	function redirect($url) {
+		header('Location: '. $url);
+		exit;
+	}
+	
+	function flash($msg, $redirect, $delay = 3) {
+		global $theApp;
+		$view = new PockyView();
+		$viewData = array(
+			'msg' => $msg,
+			'redirect' => $redirect,
+			'delay' => $delay,
+			'pageTitle' => $theApp->controllerName
+		);
+		echo $view->render('flash', $viewData, '');
+		exit;
+	}
 	
 	function __call($name, $arguments) {
 		die('Error: Could not find function '. get_class($this). '::'. $name. '() ');

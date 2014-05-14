@@ -6,9 +6,3 @@ Model:
 FormHelper:
 	Add <optgroup> support to select()
 
-Components
-	Session
-		write()
-		read()
-		check()
-		delete()

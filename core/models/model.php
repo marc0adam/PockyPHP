@@ -1,6 +1,6 @@
 <?php
 /**
-* PockyPHP
+* PockyPHP v1.0.0
 * Copyright 2014, Morrison Development
 *
 * Licensed under The MIT License (http://www.opensource.org/licenses/MIT)
@@ -39,7 +39,7 @@ class PockyModel {
 	public $hasMany = array();
 	public $hasAndBelongsToMany = array();
 	/*
-	*	string $type choices include first, all, count, NOT list
+	*	string $type choices include first, all, count, list
 	*	array $options array indexes can include:
 	*		fields,
 	*		conditions,
@@ -48,10 +48,14 @@ class PockyModel {
 	*		limit
 	*/
 	function find($type, $options = array()) {
+		if ($type == 'list') return $this->findList($options);
+		
 		global $theApp;
 		if ($type == 'first') {
 			$options['limit'] = 1;
 		}
+		$recursive = empty($options['recursive']) ? $this->recursive : $options['recursive'];
+		
 		if ($type == 'count') {
 			$sql = 'Select Count(*) as `count` ';
 		} elseif (!empty($options['fields'])) {
@@ -61,7 +65,7 @@ class PockyModel {
 		}
 		
 		$sql .= 'From `'. $this->tableName. '` as `'. get_class($this). '` ';
-		if ($this->recursive >= 0) {
+		if ($recursive >= 0) {
 			foreach($this->belongsTo as $joinName => $joinData) {
 				$sql .= 'Left Join `'. $theApp->models[$joinData['className']]->tableName. '` as `'. $joinName. '` On `'. get_class($this). '`.`'. $joinData['foreignKey']. '`=`'. $joinName. '`.`id` ';
 			}
@@ -87,8 +91,9 @@ class PockyModel {
 			return $tmp[0][0]['count'];
 		} else {
 			$tmp = $this->query($sql);
+			if (empty($tmp)) return array();
 			if ($type == 'first' && is_array($tmp)) $tmp = array(0=>$tmp[0]);
-			if ($this->recursive >= 1) {
+			if ($recursive >= 1) {
 				foreach($this->hasMany as $joinName => $joinData) {
 					$foreignModel = $theApp->models[$joinData['className']];
 					for ($i=0; $i < count($tmp); $i++) {
@@ -96,7 +101,8 @@ class PockyModel {
 							'conditions' => array(
 								$joinData['foreignKey'] => $tmp[$i][get_class($this)]['id']
 							),
-							'order' => $joinData['order']
+							'order' => (!empty($joinData['order'])) ? $joinData['order'] : $joinData['className']. '.id',
+							'recursive' => $recursive-1
 						));
 					}
 				}
@@ -121,12 +127,57 @@ class PockyModel {
 			else return $tmp;
 		}
 	}
+	
+	function findList($options = array()) {
+		//global $theApp;
+		if (empty($options['fields'])) return array();
+		
+		$sql = 'Select `'. implode('`, `', $options['fields']). '` From `'. $this->tableName. '` ';
+		if (!empty($options['conditions'])) {
+			$sql .= 'Where '. implode(' And ', $this->buildConditions($options['conditions'])). ' ';
+		}
+		if (!empty($options['group'])) {
+			$sql .= 'Group By '. $options['group']. ' ';
+		}
+		if (!empty($options['order'])) {
+			$sql .= 'Order By '. $options['order']. ' ';
+		}
+		if (!empty($options['limit'])) {
+			$sql .= 'Limit '. $options['limit'];
+		}
+		$tmp = $this->query($sql);
+		if (empty($tmp)) return array();
+		
+		$results = array();
+		$fieldLength = count($options['fields']);
+		foreach($tmp as $entry) {
+			if ($fieldLength == 1) {
+				$a = $entry[$this->tableName][$options['fields'][0]];
+				$results[$a] = $a;
+			} elseif ($fieldLength == 2) {
+				$a = $entry[$this->tableName][$options['fields'][0]];
+				$b = $entry[$this->tableName][$options['fields'][1]];
+				$results[$a] = $b;
+			} elseif ($fieldLength >= 3) {
+				$a = $entry[$this->tableName][$options['fields'][0]];
+				$b = $entry[$this->tableName][$options['fields'][1]];
+				$c = $entry[$this->tableName][$options['fields'][2]];
+				if (!isset($results[$c])) $results[$c] = array();
+				$results[$c][$a] = $b;
+			}
+		}
+		return $results;
+	}
+	
 	function buildConditions($conditions) {
 		$resp = array();
 		foreach($conditions as $key => $value) {
 			if (is_array($value)) {
 				if (trim(strtolower($key)) == 'or') { //OR
 					$resp[] = '('. implode(' Or ', $this->buildConditions($value)). ')';
+				} elseif (is_numeric($key)) {
+					$resp[] = '('. implode(' And ', $this->buildConditions($value)). ')';
+					
 				} else { //IN
 					$tmp = array();
 					foreach($value as $val) {
@@ -140,6 +191,8 @@ class PockyModel {
 			) {
 				//=, !=, IN, LIKE, NOT LIKE
 				$resp[] = $key. " '". $this->dbCn->real_escape_string($value). "'";
+			} elseif (is_numeric($key)) {
+				$resp[] = $value;
 			} else {
 				$resp[] = '`'. implode('`.`', explode('.', $key)). "`='".
 					$this->dbCn->real_escape_string($value). "'";

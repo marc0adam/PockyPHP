@@ -12,8 +12,16 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<title><?= $pageTitle; ?></title>
+<script type="text/javascript">
+setTimeout(function() {
+	document.location.assign("<?= $redirect; ?>");
+}, <?= intval($delay) * 1000; ?>);
+</script>
 </head>
 <body>
-<?= $pageContent; ?>
+<div style="text-align:center; padding:20px 10%;">
+	<h1><?= $msg; ?></h1>
+	<p><a href="<?= $redirect; ?>">continue</a></p>
+</div>
 </body>
 </html>

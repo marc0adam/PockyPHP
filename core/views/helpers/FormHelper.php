@@ -1,6 +1,6 @@
 <?php
 /**
-* PockyPHP
+* PockyPHP v1.0.0
 * Copyright 2014, Morrison Development
 *
 * Licensed under The MIT License (http://www.opensource.org/licenses/MIT)
@@ -37,6 +37,10 @@ class FormHelper extends ModHelper {
 	function password($dataName, array $params = array()) {
 		$params['type'] = 'password';
 		$params['value'] = '';
+		$this->text($dataName, $params);
+	}
+	function hidden($dataName, array $params = array()) {
+		$params['type'] = 'hidden';
 		$this->text($dataName, $params);
 	}
 	
@@ -103,13 +107,13 @@ class FormHelper extends ModHelper {
 		if (!isset($params['name'])) {
 			$params['name'] = 'data['. $modelName. ']['. $fieldName. ']';
 		}
-		$value = (isset($this->view->data[$modelName][$fieldName])) ? $this->view->data[$modelName][$fieldName] : '';
+		$textValue = (isset($this->view->data[$modelName][$fieldName])) ? $this->view->data[$modelName][$fieldName] : '';
 		
 		echo '<textarea ';
 		foreach($params as $key => $value) {
 			echo $key. '="'. addslashes($value). '" ';
 		}
-		echo '>'. $value. '</textarea>';
+		echo '>'. $textValue. '</textarea>';
 	}
 	
 }

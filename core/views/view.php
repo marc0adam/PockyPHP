@@ -1,6 +1,6 @@
 <?php
 /**
-* PockyPHP
+* PockyPHP v1.0.0
 * Copyright 2014, Morrison Development
 *
 * Licensed under The MIT License (http://www.opensource.org/licenses/MIT)
@@ -25,8 +25,10 @@ class PockyView {
 		ob_clean();
 		if (!empty($layout)) {
 			require_once('views/'. $layout. '.ctp');
+			$output = ob_get_contents();
+		} else {
+			$output = $pageContent;
 		}
-		$output = ob_get_contents();
 		ob_end_clean();
 		return $output;
 	}
